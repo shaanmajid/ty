@@ -51,7 +51,7 @@ on:
 jobs:
   # Run 'dist plan' (or host) to determine what tasks we need to do
   plan:
-    runs-on: "depot-ubuntu-latest-4"
+    runs-on: "ubuntu-latest"
     outputs:
       val: ${{ steps.plan.outputs.manifest }}
       tag: ${{ (inputs.tag != 'dry-run' && inputs.tag) || '' }}
@@ -120,7 +120,7 @@ jobs:
       - plan
       - custom-build-binaries
       - custom-build-docker
-    runs-on: "depot-ubuntu-latest-4"
+    runs-on: "ubuntu-latest"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       BUILD_MANIFEST_NAME: target/distrib/global-dist-manifest.json
@@ -172,7 +172,7 @@ jobs:
     if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.publishing == 'true' && (needs.build-global-artifacts.result == 'skipped' || needs.build-global-artifacts.result == 'success') && (needs.custom-build-binaries.result == 'skipped' || needs.custom-build-binaries.result == 'success') && (needs.custom-build-docker.result == 'skipped' || needs.custom-build-docker.result == 'success') }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    runs-on: "depot-ubuntu-latest-4"
+    runs-on: "ubuntu-latest"
     outputs:
       val: ${{ steps.host.outputs.manifest }}
     steps:
@@ -212,7 +212,7 @@ jobs:
     needs:
       - plan
       - host
-    if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
+    if: ${{ github.repository_owner == 'astral-sh' && (!fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases) }}
     uses: ./.github/workflows/publish-pypi.yml
     with:
       plan: ${{ needs.plan.outputs.val }}
@@ -232,7 +232,7 @@ jobs:
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!
     if: ${{ always() && needs.host.result == 'success' && (needs.custom-publish-pypi.result == 'skipped' || needs.custom-publish-pypi.result == 'success') }}
-    runs-on: "depot-ubuntu-latest-4"
+    runs-on: "ubuntu-latest"
     permissions:
       "attestations": "write"
       "contents": "write"
@@ -280,6 +280,7 @@ jobs:
     needs:
       - plan
       - announce
+    if: ${{ github.repository_owner == 'astral-sh' }}
     uses: ./.github/workflows/publish-docs.yml
     with:
       plan: ${{ needs.plan.outputs.val }}
